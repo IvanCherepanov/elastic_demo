@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  elast-app:
+    build: .
+    container_name: ${app_cont_name}
+    ports:
+      - ${app_port}:${app_port}
+    networks:
+      - elastic-network
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: elasticsearch:7.12.0
+    container_name: ${elasticsearch_cont_name}
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - ${elasticsearch_port_ext}:${elasticsearch_port_int}
+    networks:
+      - elastic-network
+
+  kibana:
+    image: kibana:7.12.0
+    container_name: ${kibana_cont_name}
+    environment:
+      - "ELASTICSEARCH_URL=http://${elasticsearch_cont_name}:${elasticsearch_port_int}"
+      - "SERVER_NAME=${kibana_cont_name}"
+    ports:
+      - ${kibana_port_ext}:${kibana_port_int}
+    networks:
+      - elastic-network
+    depends_on:
+      - elasticsearch
+
+networks:
+  elastic-network:
+    name: elastic-network
+
+volumes:
+  esdata:
+    driver: local
